@@ -22,7 +22,7 @@ HELP = (
     "/start — начать сначала"
 )
 
-BUTTON_DRAW = "Вытянуть жребий"
+BUTTON_DRAW = "Подбросить"
 BUTTON_AGAIN = "Ещё раз"
 
 ANSWER_YES = "Да."
