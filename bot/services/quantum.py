@@ -20,6 +20,11 @@ def _extract_bit(obj: object) -> int | None:
     """Рекурсивно ищет первое целое число в произвольной структуре JSON."""
     if isinstance(obj, (int, float)) and not isinstance(obj, bool):
         return int(obj) & 1
+    if isinstance(obj, str):
+        try:
+            return int(obj) & 1
+        except ValueError:
+            return None
     if isinstance(obj, list):
         for item in obj:
             result = _extract_bit(item)
