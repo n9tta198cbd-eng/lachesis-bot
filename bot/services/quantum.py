@@ -12,6 +12,32 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
+_NUMERIC_KEYS = ("raw", "value", "bits", "data", "number", "numbers",
+                 "random_numbers", "result", "output", "block", "integer")
+
+
+def _extract_bit(obj: object) -> int | None:
+    """Рекурсивно ищет первое целое число в произвольной структуре JSON."""
+    if isinstance(obj, (int, float)) and not isinstance(obj, bool):
+        return int(obj) & 1
+    if isinstance(obj, list):
+        for item in obj:
+            result = _extract_bit(item)
+            if result is not None:
+                return result
+    if isinstance(obj, dict):
+        # Сначала — по известным ключам, потом — по всем подряд
+        for key in _NUMERIC_KEYS:
+            if key in obj:
+                result = _extract_bit(obj[key])
+                if result is not None:
+                    return result
+        for val in obj.values():
+            result = _extract_bit(val)
+            if result is not None:
+                return result
+    return None
+
 
 class RandomProvider(abc.ABC):
     @abc.abstractmethod
@@ -55,18 +81,10 @@ class QRNGOutshiftProvider(RandomProvider):
                         f"QRNG: ошибка парсинга JSON: {exc}; body={body}"
                     ) from exc
 
-                logger.debug("QRNG response: %s", data)
+                logger.info("QRNG response: %s", data)
 
-                # Перебираем возможные ключи в ответе
-                for key in (
-                    "raw", "data", "random_numbers", "numbers",
-                    "result", "value", "bits", "output",
-                ):
-                    if key in data:
-                        val = data[key]
-                        if isinstance(val, list) and val:
-                            return int(val[0]) & 1
-                        if isinstance(val, (int, float)):
-                            return int(val) & 1
+                bit = _extract_bit(data)
+                if bit is not None:
+                    return bit
 
                 raise RuntimeError(f"QRNG: неизвестный формат ответа: {data}")
